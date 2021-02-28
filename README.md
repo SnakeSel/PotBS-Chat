@@ -26,7 +26,7 @@ Chat_Messages=Info
 ```
 PotBS-Chat.exe "D:/Documents/Pirates of the Burning Sea/log"
 ```
-# Внимание #
+### Внимание ###
 Т.к. при запуске программа открывает последний лог файл, а игра при запуске создает новый лог, то 
 программу следует запускать ПОСЛЕ запуска игры. Или после запуска игры нажать кнопку "reload".
 
@@ -44,14 +44,6 @@ $ go get github.com/SnakeSel/PotBS-Chat
 $ cd $GOPATH/src/github.com/snakesel/PotBS-Chat/
 ```
 #### Build:
-- Windows:
-```sh
-Build.bat
-```
-- Linux:
-```sh
-go build
-```
-
-
+- Windows: `Build.bat` or `go build -ldflags "-H=windowsgui -s -w"`
+- Linux: `go build -ldflags "-s -w"`
 

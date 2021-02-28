@@ -1,7 +1,7 @@
 @echo off
 clear
 
-set proj=potbs_chat
+set proj=PotBS-Chat
 set today=%date:~6,4%%date:~3,2%%date:~0,2%
 set mingw=C:\msys64\mingw64
 set sevenz="C:\Program Files\7-Zip\7z.exe"
@@ -20,6 +20,9 @@ if errorlevel 0 (
 	@pause 
 	exit /b 1
 )
+
+echo Copy  %proj%.exe...
+xcopy %proj%.exe %builddir%\
 
 echo Copy libs ...
 if not exist %libdir% (
