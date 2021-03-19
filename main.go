@@ -1,5 +1,7 @@
 package main
 
+// PotBS chat
+
 import (
 	"log"
 
@@ -54,6 +56,8 @@ type MainWindow struct {
 	tailQuit bool
 
 	pathToLog string
+
+	delaySending float64 // Задержка отправки сообщения (сек)
 }
 
 func main() {
@@ -160,7 +164,19 @@ func mainWindowCreate() *MainWindow {
 		loadAndRun(win)
 	})
 
-	// построение UI
+	spinbtn, err := gtk.SpinButtonNewWithRange(0, 5, 1)
+	checkErr(err)
+	spinbtn.SetDigits(0)
+	spinbtn.SetTooltipText("Задержка перевода сообщения в сек.")
+	// Задержка отправки сообщения по умолчанию
+	spinbtn.SetValue(3)
+	win.delaySending = 3
+
+	spinbtn.Connect("value-changed", func() {
+		win.delaySending = spinbtn.GetValue()
+		log.Printf("Delay sending set to: %.0f", win.delaySending)
+	})
+
 	scroll, err := gtk.ScrolledWindowNew(nil, nil)
 	scroll.Add(win.TreeView)
 	scroll.SetVExpand(true) //расширяемость по вертикали
@@ -171,22 +187,37 @@ func mainWindowCreate() *MainWindow {
 		adj.SetValue(adj.GetUpper() - adj.GetPageSize())
 	})
 
+	// построение UI
+	//Основные элеиенты
 	box, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 2)
 	checkErr(err)
-	box2, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 3)
+	// Нижняя полоса
+	boxFooter, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 3)
+	checkErr(err)
+	// Кнопки
+	boxBtn, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 3)
 	checkErr(err)
 
+	sep, err := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
+	checkErr(err)
+	sep.SetHExpand(true)
+
 	box.Add(scroll)
-	box.Add(box2)
+	box.Add(boxFooter)
 
-	box2.Add(win.BtnNew)
-	box2.Add(win.BtnClear)
-	box2.Add(win.BtnExit)
+	boxFooter.Add(spinbtn)
+	boxFooter.Add(sep)
+	boxFooter.Add(boxBtn)
 
-	box2.SetHAlign(gtk.ALIGN_END) // расположение элементов по горизонтали
-	box2.SetSpacing(10)           // интервал между элементами
-	box2.SetHomogeneous(true)
+	boxBtn.Add(win.BtnNew)
+	boxBtn.Add(win.BtnClear)
+	boxBtn.Add(win.BtnExit)
 
+	boxBtn.SetHAlign(gtk.ALIGN_END) // расположение элементов по горизонтали
+	boxBtn.SetSpacing(10)           // интервал между элементами
+	boxBtn.SetHomogeneous(true)
+
+	spinbtn.SetHAlign(gtk.ALIGN_START)
 	//win.BtnNew.SetHAlign(gtk.ALIGN_START)
 	//win.BtnExit.SetHAlign(gtk.ALIGN_END)
 	win.BtnNew.SetVisible(false)
@@ -228,10 +259,9 @@ func (mainUI *MainWindow) tailLog(dir string) {
 	for line := range t.Lines {
 		// Задержка отправки сообщения раз в 3 сек
 		sec := time.Now().Sub(lastT).Seconds()
-		if sec < 3 {
-			log.Printf("Sleep %f sec.", 3-sec)
-			time.Sleep(time.Duration(3-sec) * time.Second)
-			//time.Sleep(2 * time.Second)
+		if sec < mainUI.delaySending {
+			//log.Printf("Sleep %.2f sec.", mainUI.delaySending-sec)
+			time.Sleep(time.Duration(mainUI.delaySending-sec) * time.Second)
 		}
 
 		if mainUI.tailQuit {
