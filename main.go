@@ -18,7 +18,6 @@ import (
 	"time"
 
 	gotr "github.com/bas24/googletranslatefree"
-	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/hpcloud/tail"
@@ -116,17 +115,30 @@ func mainWindowCreate() *MainWindow {
 	// Получаем остальные объекты MainWindow
 	win.TreeView, err = gtk.TreeViewNew()
 	checkErr(err)
-	win.TreeView.AppendColumn(createTextColumn("Time", COLUMN_DATE))
-	win.TreeView.AppendColumn(createTextColumn("Text", COLUMN_TEXT))
+	win.TreeView.SetHExpand(true)
 	win.TreeView.SetFixedHeightMode(false) // режим фиксированной одинаковой высоты строк
+	win.TreeView.AppendColumn(createTextColumn("Time", COLUMN_DATE))
+	//win.TreeView.AppendColumn(createTextColumn("Text", COLUMN_TEXT))
 
-	//win.Window.Connect("event", win.widgetExpose, nil)
+	cellRendererTEXT, err := gtk.CellRendererTextNew()
+	checkErr(err, "Unable to create text cell renderer")
+	cellRendererTEXT.SetProperty("wrap-mode", gtk.WRAP_WORD)
 
-	// columnTEXT := win.TreeView.GetColumn(COLUMN_TEXT)
+	columnTEXT, err := gtk.TreeViewColumnNewWithAttribute("Text", cellRendererTEXT, "text", COLUMN_TEXT)
+	checkErr(err, "Unable to create cell column")
 
-	// columnTEXT.ConnectAfter("notify::width", func() {
-	// 	set_column_width(columnTEXT)
-	// })
+	win.TreeView.AppendColumn(columnTEXT)
+	columnTEXT.SetSizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+	columnTEXT.SetExpand(true)
+	columnTEXT.SetResizable(true)
+	//columnTEXT.SetMinWidth(100)
+
+	// Перенос текста по ширине столбца
+	//win.Window.ConnectAfter("check-resize", func() {
+	columnTEXT.ConnectAfter("notify::width", func() {
+		cellRendererTEXT.SetProperty("wrap-width", columnTEXT.GetWidth())
+		//log.Printf("change width col. to : %d", columnTEXT.GetWidth())
+	})
 
 	win.ListStore, err = gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING)
 	checkErr(err)
@@ -226,6 +238,7 @@ func mainWindowCreate() *MainWindow {
 
 	// Set the default window size.
 	win.Window.SetDefaultSize(800, 600)
+	win.Window.SetPosition(gtk.WIN_POS_CENTER)
 
 	return win
 }
@@ -569,21 +582,6 @@ func getChanelList(lang string) ([]string, error) {
 	}
 
 	return nil, errors.New("unknown lang")
-}
-
-func set_column_width(column *gtk.TreeViewColumn) {
-	render, _ := gtk.CellRendererTextNew()
-
-	render.SetProperty("wrap-width", column.GetWidth())
-	render.SetProperty("wrap-mode", gtk.WRAP_WORD)
-
-}
-
-// Обработка изменения окна
-func (win *MainWindow) widgetExpose(window *gtk.Window, event *gdk.Event) {
-
-	set_column_width(win.TreeView.GetColumn(COLUMN_TEXT))
-
 }
 
 func checkErr(e error, text_opt ...string) {
