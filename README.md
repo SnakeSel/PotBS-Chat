@@ -8,7 +8,7 @@
 Написана на [Go](https://golang.org/) с использованием [gotk3](https://github.com/gotk3/gotk3)
 
 ## Установка
-1. Скачать [актуальный релиз](https://github.com/SnakeSel/PotBS-Chat/releases)
+1. Скачать [актуальный релиз](https://github.com/SnakeSel/PotBS-Chat/releases)  
 Для версии **without GTK3** необходимо установить [GTK+ for Windows Runtime Environment](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer) (один раз для всех GTK приложений).
 2. Распаковать архив
 3. Для работы необходимо в директории игры в файле `pirates_local.ini` (создать при отсутствии) прописать следующие строки:
