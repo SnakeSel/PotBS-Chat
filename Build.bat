@@ -1,7 +1,7 @@
 @echo off
 clear
 
-set proj=PotBS-Chat
+set proj=potbs-chat
 set today=%date:~6,4%%date:~3,2%%date:~0,2%
 set mingw=C:\msys64\mingw64
 set sevenz="C:\Program Files\7-Zip\7z.exe"

@@ -35,6 +35,11 @@ const (
 )
 
 const (
+	transToRU = "RU"
+	transToEN = "EN"
+)
+
+const (
 	title   = "PotBS chat message"
 	cfgFile = "./potbs-chat.ini"
 )
@@ -56,6 +61,9 @@ type MainWindow struct {
 	BtnClear *gtk.Button
 	BtnNew   *gtk.Button
 	BtnExit  *gtk.Button
+
+	ComboTransTo *gtk.ComboBoxText
+	LblTransTo   *gtk.Label
 
 	tailQuit bool
 
@@ -101,6 +109,7 @@ func main() {
 	// ### применяем настроки
 	mainUI.Window.Resize(cfg.Section("Main").Key("width").MustInt(800), cfg.Section("Main").Key("height").MustInt(600))
 	mainUI.Window.Move(cfg.Section("Main").Key("posX").MustInt(0), cfg.Section("Main").Key("posY").MustInt(0))
+	mainUI.ComboTransTo.SetActiveID(cfg.Section("Main").Key("transTo").MustString(transToRU))
 
 	// Recursively show all widgets contained in this window.
 	mainUI.Window.ShowAll()
@@ -131,6 +140,7 @@ func mainWindowCreate() *MainWindow {
 
 	win.Window.Connect("delete-event", func() {
 		cfg.Section("Main").Key("LogDir").SetValue(win.pathToLog)
+		cfg.Section("Main").Key("transTo").SetValue(win.ComboTransTo.GetActiveID())
 
 		w, h := win.Window.GetSize()
 		cfg.Section("Main").Key("width").SetValue(strconv.Itoa(w))
@@ -233,26 +243,43 @@ func mainWindowCreate() *MainWindow {
 		adj.SetValue(adj.GetUpper() - adj.GetPageSize())
 	})
 
+	win.ComboTransTo, err = gtk.ComboBoxTextNew()
+	checkErr(err)
+	win.ComboTransTo.Append(transToRU, transToRU)
+	win.ComboTransTo.Append(transToEN, transToEN)
+
+	win.LblTransTo, err = gtk.LabelNew("Translate to")
+	checkErr(err)
+
 	// построение UI
 	//Основные элеиенты
 	box, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 2)
 	checkErr(err)
 	// Нижняя полоса
-	boxFooter, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 3)
+	boxFooter, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 5)
 	checkErr(err)
 	// Кнопки
 	boxBtn, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 3)
 	checkErr(err)
 
-	sep, err := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
+	boxCfg, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 2)
 	checkErr(err)
-	sep.SetHExpand(true)
+
+	sep1, err := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
+	checkErr(err)
+	//sep1.SetHExpand(true)
+
+	sep2, err := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
+	checkErr(err)
+	sep2.SetHExpand(true)
 
 	box.Add(scroll)
 	box.Add(boxFooter)
 
 	boxFooter.Add(spinbtn)
-	boxFooter.Add(sep)
+	boxFooter.Add(sep1)
+	boxFooter.Add(boxCfg)
+	boxFooter.Add(sep2)
 	boxFooter.Add(boxBtn)
 
 	boxBtn.Add(win.BtnNew)
@@ -262,6 +289,9 @@ func mainWindowCreate() *MainWindow {
 	boxBtn.SetHAlign(gtk.ALIGN_END) // расположение элементов по горизонтали
 	boxBtn.SetSpacing(10)           // интервал между элементами
 	boxBtn.SetHomogeneous(true)
+
+	boxCfg.Add(win.LblTransTo)
+	boxCfg.Add(win.ComboTransTo)
 
 	spinbtn.SetHAlign(gtk.ALIGN_START)
 	//win.BtnNew.SetHAlign(gtk.ALIGN_START)
@@ -404,8 +434,13 @@ func (mainUI *MainWindow) tailLog(dir string) {
 
 		}
 
+		// Пока проверяем оба.
+		// Т.к. выбранный язык перевода не гарантирует такой же язык интерфейса игры
 		// Строки не требующие перевода (стандартные сообщения)
 		if isNotReqTranslationRU(line.Text) {
+			continue
+		}
+		if isNotReqTranslationEN(line.Text) {
 			continue
 		}
 
@@ -420,7 +455,7 @@ func (mainUI *MainWindow) tailLog(dir string) {
 			checkErr(err)
 
 			// переводим новый
-			trtext, err := translate(line.Text, "auto", "ru")
+			trtext, err := translate(line.Text, "auto", str.ToLower(mainUI.ComboTransTo.GetActiveID()))
 			if err == nil {
 				mainUI.ListStore.SetValue(iter, COLUMN_TEXT, currentText+"\n"+trtext)
 			} else {
@@ -437,7 +472,7 @@ func (mainUI *MainWindow) tailLog(dir string) {
 		if chatpos != -1 {
 			// только если найден канал (отсеиваем служебные)
 			NeedTranslate := false
-			chanels, err := getChanelList("ru")
+			chanels, err := getChanelList("all")
 			if err == nil {
 				for _, chanel := range chanels {
 					if str.Contains(line.Text, chanel) {
@@ -453,7 +488,7 @@ func (mainUI *MainWindow) tailLog(dir string) {
 				text := line.Text[chatpos+len("Chat_Messages: "):]
 				text = str.TrimSpace(text)
 				// переводим
-				trtext, err := translate(text, "auto", "ru")
+				trtext, err := translate(text, "auto", str.ToLower(mainUI.ComboTransTo.GetActiveID()))
 				if err == nil {
 					mainUI.ListStore.SetValue(iter, COLUMN_TEXT, trtext)
 				} else {
@@ -552,7 +587,7 @@ func translate(source, sourceLang, targetLang string) (string, error) {
 	// Убираем названия каналов, чтобы они не фигурировали в переводе
 	var replChanel, replName replacement
 
-	chanels, err := getChanelList("ru")
+	chanels, err := getChanelList("all")
 	if err == nil {
 		for _, chanel := range chanels {
 			ind := str.Index(source, chanel)
@@ -578,19 +613,22 @@ func translate(source, sourceLang, targetLang string) (string, error) {
 		source = source[:macros[0]] + source[macros[1]:]
 	}
 
-	match, _ := regexp.MatchString(`\p{Latin}`, source)
-	if !match {
-		//return "", errors.New("Не содержит латиницу")
-		trtext = source
-		if replName.lenght > 0 {
-			trtext = trtext[:replName.start] + replName.text + trtext[replName.start:]
+	// Оптимизация кол-ва запросов.
+	// Если переводи на русский, а строка уже на русском, то возвращаем ее
+	if str.ToLower(targetLang) == "ru" {
+		match, _ := regexp.MatchString(`\p{Latin}`, source)
+		if !match {
+			//return "", errors.New("Не содержит латиницу")
+			trtext = source
+			if replName.lenght > 0 {
+				trtext = trtext[:replName.start] + replName.text + trtext[replName.start:]
+			}
+			if replChanel.lenght > 0 {
+				trtext = trtext[:replChanel.start] + replChanel.text + trtext[replChanel.start:]
+			}
+			return trtext, nil
 		}
-		if replChanel.lenght > 0 {
-			trtext = trtext[:replChanel.start] + replChanel.text + trtext[replChanel.start:]
-		}
-		return trtext, nil
 	}
-
 	// Сначала переводим в гугле
 	trtext, err = gotr.Translate(source, sourceLang, targetLang)
 	if err == nil {
@@ -636,14 +674,43 @@ func isNotReqTranslationRU(sourse string) bool {
 	return false
 }
 
+// Строка не требует перевода
+func isNotReqTranslationEN(sourse string) bool {
+	// Строки не требующие перевода
+	switch {
+	case str.Contains(sourse, "You have changed to the"):
+		return true
+	case str.Contains(sourse, "You have joined the"):
+		return true
+	case str.Contains(sourse, "You learned"):
+		return true
+	case str.Contains(sourse, "You gained a level"):
+		return true
+	case str.Contains(sourse, "placed in your dockyard"):
+		return true
+	}
+	return false
+}
+
 func getChanelList(lang string) ([]string, error) {
+
+	listRU := []string{"[Нация] ", "[сообщество] ", "[Местный] ", "[Группа] ", "[Локальный] ", "[Торговля] ",
+		"[Битва] ", "[Схватка] ", "[Мероприятия] ", "[Live Events] ", "[Зона] ",
+		" говорит вам:", "Вы говорите игроку ",
+		"[Сообщение дня в порту]:", "[Системное сообщение дня]:", "[Сообщение дня сообщества]:",
+	}
+	listEN := []string{"[Nation] ", "[Society] ", "[Local] ", "[Group] ", "[Trade] ",
+		"[Battle] ", "[Skirmish] ", "[Live Events] ", "[Area] ",
+		" tells you:", "You tell ",
+		"[Port message of the day]:", "[System message of the day]:", "[Society message of the day]:",
+	}
 	switch str.ToLower(lang) {
 	case "ru":
-		return []string{"[Нация] ", "[сообщество] ", "[Местный] ", "[Группа] ", "[Локальный] ", "[Торговля] ",
-			"[Битва] ", "[Схватка] ", "[Мероприятия] ", "[Live Events] ", "[Зона] ",
-			" говорит вам:", "Вы говорите игроку ",
-			"[Сообщение дня в порту]:", "[Системное сообщение дня]:", "[Сообщение дня сообщества]:",
-		}, nil
+		return listRU, nil
+	case "en":
+		return listEN, nil
+	case "all":
+		return append(listRU, listEN...), nil
 	}
 
 	return nil, errors.New("unknown lang")
