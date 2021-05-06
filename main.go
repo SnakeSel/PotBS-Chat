@@ -124,8 +124,24 @@ func mainWindowCreate() *MainWindow {
 	checkErr(err, "Unable to create window")
 
 	win.Window.SetTitle(title)
+
 	win.Window.Connect("destroy", func() {
 		gtk.MainQuit()
+	})
+
+	win.Window.Connect("delete-event", func() {
+		cfg.Section("Main").Key("LogDir").SetValue(win.pathToLog)
+
+		w, h := win.Window.GetSize()
+		cfg.Section("Main").Key("width").SetValue(strconv.Itoa(w))
+		cfg.Section("Main").Key("height").SetValue(strconv.Itoa(h))
+
+		x, y := win.Window.GetPosition()
+		cfg.Section("Main").Key("posX").SetValue(strconv.Itoa(x))
+		cfg.Section("Main").Key("posY").SetValue(strconv.Itoa(y))
+
+		cfg.SaveTo(cfgFile)
+
 	})
 
 	win.tailQuit = false
@@ -180,7 +196,7 @@ func mainWindowCreate() *MainWindow {
 	win.BtnExit.SetLabel("Exit")
 
 	win.BtnExit.Connect("clicked", func() {
-		win.Window.Destroy()
+		win.Window.Close()
 	})
 
 	win.BtnNew, err = gtk.ButtonNew()
@@ -254,22 +270,6 @@ func mainWindowCreate() *MainWindow {
 
 	win.Window.Add(box)
 
-	// Сигналы MainWindow
-	win.Window.Connect("destroy", func() {
-		cfg.Section("Main").Key("LogDir").SetValue(win.pathToLog)
-
-		w, h := win.Window.GetSize()
-		cfg.Section("Main").Key("width").SetValue(strconv.Itoa(w))
-		cfg.Section("Main").Key("height").SetValue(strconv.Itoa(h))
-
-		x, y := win.Window.GetPosition()
-		cfg.Section("Main").Key("posX").SetValue(strconv.Itoa(x))
-		cfg.Section("Main").Key("posY").SetValue(strconv.Itoa(y))
-
-		cfg.SaveTo(cfgFile)
-		win.Window.Close()
-	})
-
 	// Set the default window size.
 	//win.Window.SetDefaultSize(800, 600)
 	//win.Window.SetPosition(gtk.WIN_POS_CENTER)
@@ -279,8 +279,39 @@ func mainWindowCreate() *MainWindow {
 
 // Определяем лог файл и запускаем чтение в горутине
 func loadAndRun(mainUI *MainWindow) {
-	// получаем имя файла лога
-	potbs_logfile := getLastLog(filepath.Clean(mainUI.pathToLog))
+
+	potbs_logfile := "."
+
+	// При недоступности директории или файла логов
+	// выводим окно выбора папки с логом
+	ok := false
+	for !ok {
+		_, err := os.Stat(mainUI.pathToLog)
+		if err == nil {
+			// получаем имя файла лога
+			potbs_logfile = getLastLog(filepath.Clean(mainUI.pathToLog))
+			if potbs_logfile != "." {
+				ok = true
+				break
+			}
+		}
+
+		dialog, err := gtk.FileChooserNativeDialogNew("Выберите директорию с логами PotBS", mainUI.Window, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, "OK", "Отмена")
+		checkErr(err)
+		respons := dialog.Run()
+
+		// NativeDialog возвращает int с кодом ответа. -3 это GTK_RESPONSE_ACCEPT
+		if respons != int(gtk.RESPONSE_ACCEPT) {
+			//win.Window.Close()
+			os.Exit(1)
+		}
+
+		mainUI.pathToLog, err = dialog.GetCurrentFolder()
+		checkErr(err)
+		dialog.Destroy()
+
+	}
+
 	log.Printf("Open file: %s", potbs_logfile)
 	// Прописываем имя файла в заголовок
 	mainUI.Window.SetTitle(title + " (" + filepath.Base(potbs_logfile) + ")")
