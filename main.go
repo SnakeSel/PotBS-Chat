@@ -11,6 +11,7 @@ import (
 	str "strings"
 
 	"path/filepath"
+	"strconv"
 
 	"errors"
 
@@ -22,7 +23,10 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/hpcloud/tail"
 	libretr "github.com/snakesel/libretranslate"
+	"gopkg.in/ini.v1"
 )
+
+var cfg *ini.File
 
 // IDs to access the tree view columns by
 const (
@@ -31,7 +35,8 @@ const (
 )
 
 const (
-	title = "PotBS chat message"
+	title   = "PotBS chat message"
+	cfgFile = "./potbs-chat.ini"
 )
 
 type replacement struct {
@@ -60,9 +65,18 @@ type MainWindow struct {
 }
 
 func main() {
+	var err error
+
+	// Загрузка настроек
+	cfg, err = ini.LooseLoad(cfgFile)
+	if err != nil {
+		log.Fatalf("[ERR]\tFail to read file: %v", err)
+	}
+
 	potbs_logdir := "./"
 
-	// Параметры комадной строки
+	// Если передан параметр, бурем путь из него,
+	// иначе из файла настроек
 	if len(os.Args) > 1 {
 		potbs_logdir = filepath.Clean(os.Args[1])
 	} else {
@@ -70,9 +84,9 @@ func main() {
 		if err == nil {
 			switch runtime.GOOS {
 			case "windows":
-				potbs_logdir = filepath.Join(home, "Documents/Pirates of the Burning Sea/log")
+				potbs_logdir = cfg.Section("Main").Key("LogDir").MustString(filepath.Join(home, "Documents/Pirates of the Burning Sea/log"))
 			default:
-				potbs_logdir = filepath.Join(home, "Pirates of the Burning Sea/log")
+				potbs_logdir = cfg.Section("Main").Key("LogDir").MustString(filepath.Join(home, "Pirates of the Burning Sea/log"))
 			}
 		}
 	}
@@ -84,10 +98,14 @@ func main() {
 
 	mainUI := mainWindowCreate()
 
+	// ### применяем настроки
+	mainUI.Window.Resize(cfg.Section("Main").Key("width").MustInt(800), cfg.Section("Main").Key("height").MustInt(600))
+	mainUI.Window.Move(cfg.Section("Main").Key("posX").MustInt(0), cfg.Section("Main").Key("posY").MustInt(0))
+
 	// Recursively show all widgets contained in this window.
 	mainUI.Window.ShowAll()
 
-	mainUI.Window.SetPosition(gtk.WIN_POS_CENTER)
+	//mainUI.Window.SetPosition(gtk.WIN_POS_CENTER)
 	mainUI.pathToLog = potbs_logdir
 
 	loadAndRun(mainUI)
@@ -236,9 +254,25 @@ func mainWindowCreate() *MainWindow {
 
 	win.Window.Add(box)
 
+	// Сигналы MainWindow
+	win.Window.Connect("destroy", func() {
+		cfg.Section("Main").Key("LogDir").SetValue(win.pathToLog)
+
+		w, h := win.Window.GetSize()
+		cfg.Section("Main").Key("width").SetValue(strconv.Itoa(w))
+		cfg.Section("Main").Key("height").SetValue(strconv.Itoa(h))
+
+		x, y := win.Window.GetPosition()
+		cfg.Section("Main").Key("posX").SetValue(strconv.Itoa(x))
+		cfg.Section("Main").Key("posY").SetValue(strconv.Itoa(y))
+
+		cfg.SaveTo(cfgFile)
+		win.Window.Close()
+	})
+
 	// Set the default window size.
-	win.Window.SetDefaultSize(800, 600)
-	win.Window.SetPosition(gtk.WIN_POS_CENTER)
+	//win.Window.SetDefaultSize(800, 600)
+	//win.Window.SetPosition(gtk.WIN_POS_CENTER)
 
 	return win
 }

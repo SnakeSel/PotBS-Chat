@@ -157,7 +157,7 @@ echo.
 
 echo Create Run_Dark.bat
 (echo set GTK_THEME=Adwaita:dark
-echo PotBS-Chat.exe
+echo start "" %proj%.exe
 ) > %builddir%\Run_Dark.bat
 
 
