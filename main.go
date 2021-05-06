@@ -99,8 +99,6 @@ func main() {
 		}
 	}
 
-	log.Printf("Logs dir: %s", potbs_logdir)
-
 	// Initialize GTK without parsing any command line arguments.
 	gtk.Init(nil)
 
@@ -327,6 +325,7 @@ func loadAndRun(mainUI *MainWindow) {
 		}
 
 		dialog, err := gtk.FileChooserNativeDialogNew("Выберите директорию с логами PotBS", mainUI.Window, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, "OK", "Отмена")
+		//dialog, err := gtk.FileChooserDialogNewWith1Button("Выберите директорию с логами PotBS", mainUI.Window, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, "OK", gtk.RESPONSE_ACCEPT)
 		checkErr(err)
 		respons := dialog.Run()
 
@@ -336,8 +335,7 @@ func loadAndRun(mainUI *MainWindow) {
 			os.Exit(1)
 		}
 
-		mainUI.pathToLog, err = dialog.GetCurrentFolder()
-		checkErr(err)
+		mainUI.pathToLog = dialog.GetFilename()
 		dialog.Destroy()
 
 	}

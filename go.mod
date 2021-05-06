@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/bas24/googletranslatefree v0.0.0-20170719053803-07873a6de396
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/gotk3/gotk3 v0.5.3-0.20210416043928-29f29f77ebb2
+	github.com/gotk3/gotk3 v0.5.3-0.20210505200103-9359697d6ea6
 	github.com/hpcloud/tail v1.0.0
 	github.com/robertkrimen/otto v0.0.0-20200922221731-ef014fd054ac // indirect
 	github.com/smartystreets/goconvey v1.6.4 // indirect
