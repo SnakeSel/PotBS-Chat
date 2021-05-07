@@ -71,6 +71,7 @@ type MainWindow struct {
 
 	SpinBtn *gtk.SpinButton // Задержка отправки сообщения (сек)
 
+	darkToggle *gtk.ToggleButton
 }
 
 func main() {
@@ -110,16 +111,19 @@ func main() {
 	mainUI.Window.Move(cfg.Section("Main").Key("posX").MustInt(0), cfg.Section("Main").Key("posY").MustInt(0))
 	mainUI.ComboTransTo.SetActiveID(cfg.Section("Main").Key("transTo").MustString(transToRU))
 	mainUI.SpinBtn.SetValue(cfg.Section("Main").Key("delaySending").MustFloat64(3))
+	mainUI.darkToggle.SetActive(cfg.Section("Main").Key("dark").MustBool(false))
 
 	// Recursively show all widgets contained in this window.
 	mainUI.Window.ShowAll()
 
 	//mainUI.Window.SetPosition(gtk.WIN_POS_CENTER)
 	mainUI.pathToLog = potbs_logdir
-
 	loadAndRun(mainUI)
 
+	//gtk.SetInteractiveDebugging(true)
+
 	gtk.Main()
+
 }
 
 func mainWindowCreate() *MainWindow {
@@ -142,6 +146,7 @@ func mainWindowCreate() *MainWindow {
 		cfg.Section("Main").Key("LogDir").SetValue(win.pathToLog)
 		cfg.Section("Main").Key("transTo").SetValue(win.ComboTransTo.GetActiveID())
 		cfg.Section("Main").Key("delaySending").SetValue(strconv.Itoa(win.SpinBtn.GetValueAsInt()))
+		cfg.Section("Main").Key("dark").SetValue(strconv.FormatBool(win.darkToggle.GetActive()))
 
 		w, h := win.Window.GetSize()
 		cfg.Section("Main").Key("width").SetValue(strconv.Itoa(w))
@@ -245,42 +250,57 @@ func mainWindowCreate() *MainWindow {
 	win.ComboTransTo.Append(transToEN, transToEN)
 
 	win.ComboTransTo.Connect("changed", func() {
-		log.Printf("Lang to: %s", win.ComboTransTo.GetActiveID())
+		//log.Printf("Lang to: %s", win.ComboTransTo.GetActiveID())
 		win.setLocale(win.ComboTransTo.GetActiveID())
 	})
 
 	win.LblTransTo, err = gtk.LabelNew("Translate to")
 	checkErr(err)
 
+	win.darkToggle, err = gtk.ToggleButtonNew()
+	checkErr(err)
+
+	param, err := gtk.SettingsGetDefault()
+	checkErr(err)
+
+	win.darkToggle.Connect("toggled", func() {
+		if win.darkToggle.GetActive() {
+			param.SetProperty("gtk-application-prefer-dark-theme", 1)
+		} else {
+			param.SetProperty("gtk-application-prefer-dark-theme", 0)
+		}
+
+	})
+
 	// построение UI
 	//Основные элеиенты
 	box, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 2)
 	checkErr(err)
 	// Нижняя полоса
-	boxFooter, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 5)
+	boxFooter, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 3)
 	checkErr(err)
 	// Кнопки
 	boxBtn, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 3)
 	checkErr(err)
 
-	boxCfg, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 2)
+	boxCfg, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 6)
 	checkErr(err)
 
 	sep1, err := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
 	checkErr(err)
-	//sep1.SetHExpand(true)
+	sep1.SetHExpand(true)
 
 	sep2, err := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
 	checkErr(err)
-	sep2.SetHExpand(true)
+
+	sep3, err := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
+	checkErr(err)
 
 	box.Add(scroll)
 	box.Add(boxFooter)
 
-	boxFooter.Add(win.SpinBtn)
-	boxFooter.Add(sep1)
 	boxFooter.Add(boxCfg)
-	boxFooter.Add(sep2)
+	boxFooter.Add(sep1)
 	boxFooter.Add(boxBtn)
 
 	boxBtn.Add(win.BtnNew)
@@ -291,8 +311,12 @@ func mainWindowCreate() *MainWindow {
 	boxBtn.SetSpacing(10)           // интервал между элементами
 	boxBtn.SetHomogeneous(true)
 
+	boxCfg.Add(win.SpinBtn)
+	boxCfg.Add(sep2)
 	boxCfg.Add(win.LblTransTo)
 	boxCfg.Add(win.ComboTransTo)
+	boxCfg.Add(sep3)
+	boxCfg.Add(win.darkToggle)
 
 	win.SpinBtn.SetHAlign(gtk.ALIGN_START)
 	//win.BtnNew.SetHAlign(gtk.ALIGN_START)
@@ -725,13 +749,14 @@ func (mainUI *MainWindow) setLocale(locale string) {
 		mainUI.BtnClear.SetLabel("Очистить")
 		mainUI.BtnExit.SetLabel("Закрыть")
 		mainUI.SpinBtn.SetTooltipText("Мин. интервал между сообщениями (в сек.)\nЧтобы не превысить ограничения сервера gtranslate")
+		mainUI.darkToggle.SetLabel("Темный")
 	case "en":
 		mainUI.LblTransTo.SetLabel("Translate to ")
 		mainUI.BtnNew.SetLabel("Reload")
 		mainUI.BtnClear.SetLabel("Clear")
 		mainUI.BtnExit.SetLabel("Quit")
 		mainUI.SpinBtn.SetTooltipText("Min. interval between messages (in seconds)\nIn order not to exceed the gtranslate server limits")
-
+		mainUI.darkToggle.SetLabel("Dark")
 	}
 }
 func checkErr(e error, text_opt ...string) {

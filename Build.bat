@@ -155,12 +155,6 @@ echo.
 ) > %adwaita_build%\index.theme
 
 
-echo Create Run_Dark.bat
-(echo set GTK_THEME=Adwaita:dark
-echo start "" %proj%.exe
-) > %builddir%\Run_Dark.bat
-
-
 echo Create Archive
 cd %builddir%\..\
 %sevenz% a "%builddir%\..\..\%proj%_Win64_%today%.7z" "%proj%" "-xr!cfg.ini"
