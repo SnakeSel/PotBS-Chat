@@ -69,7 +69,8 @@ type MainWindow struct {
 
 	pathToLog string
 
-	delaySending float64 // Задержка отправки сообщения (сек)
+	SpinBtn *gtk.SpinButton // Задержка отправки сообщения (сек)
+
 }
 
 func main() {
@@ -108,6 +109,7 @@ func main() {
 	mainUI.Window.Resize(cfg.Section("Main").Key("width").MustInt(800), cfg.Section("Main").Key("height").MustInt(600))
 	mainUI.Window.Move(cfg.Section("Main").Key("posX").MustInt(0), cfg.Section("Main").Key("posY").MustInt(0))
 	mainUI.ComboTransTo.SetActiveID(cfg.Section("Main").Key("transTo").MustString(transToRU))
+	mainUI.SpinBtn.SetValue(cfg.Section("Main").Key("delaySending").MustFloat64(3))
 
 	// Recursively show all widgets contained in this window.
 	mainUI.Window.ShowAll()
@@ -139,6 +141,7 @@ func mainWindowCreate() *MainWindow {
 	win.Window.Connect("delete-event", func() {
 		cfg.Section("Main").Key("LogDir").SetValue(win.pathToLog)
 		cfg.Section("Main").Key("transTo").SetValue(win.ComboTransTo.GetActiveID())
+		cfg.Section("Main").Key("delaySending").SetValue(strconv.Itoa(win.SpinBtn.GetValueAsInt()))
 
 		w, h := win.Window.GetSize()
 		cfg.Section("Main").Key("width").SetValue(strconv.Itoa(w))
@@ -218,18 +221,14 @@ func mainWindowCreate() *MainWindow {
 		loadAndRun(win)
 	})
 
-	spinbtn, err := gtk.SpinButtonNewWithRange(0, 5, 1)
+	win.SpinBtn, err = gtk.SpinButtonNewWithRange(0, 5, 1)
 	checkErr(err)
-	spinbtn.SetDigits(0)
-	spinbtn.SetTooltipText("Задержка перевода сообщения в сек.")
-	// Задержка отправки сообщения по умолчанию
-	spinbtn.SetValue(3)
-	win.delaySending = 3
+	win.SpinBtn.SetDigits(0)
+	win.SpinBtn.SetTooltipText("Задержка перевода сообщения в сек.")
 
-	spinbtn.Connect("value-changed", func() {
-		win.delaySending = spinbtn.GetValue()
-		log.Printf("Delay sending set to: %.0f", win.delaySending)
-	})
+	// win.SpinBtn.Connect("value-changed", func() {
+	// 	log.Printf("Delay sending set to: %.0f", win.SpinBtn.GetValue())
+	// })
 
 	scroll, err := gtk.ScrolledWindowNew(nil, nil)
 	scroll.Add(win.TreeView)
@@ -274,7 +273,7 @@ func mainWindowCreate() *MainWindow {
 	box.Add(scroll)
 	box.Add(boxFooter)
 
-	boxFooter.Add(spinbtn)
+	boxFooter.Add(win.SpinBtn)
 	boxFooter.Add(sep1)
 	boxFooter.Add(boxCfg)
 	boxFooter.Add(sep2)
@@ -291,7 +290,7 @@ func mainWindowCreate() *MainWindow {
 	boxCfg.Add(win.LblTransTo)
 	boxCfg.Add(win.ComboTransTo)
 
-	spinbtn.SetHAlign(gtk.ALIGN_START)
+	win.SpinBtn.SetHAlign(gtk.ALIGN_START)
 	//win.BtnNew.SetHAlign(gtk.ALIGN_START)
 	//win.BtnExit.SetHAlign(gtk.ALIGN_END)
 	win.BtnNew.SetVisible(false)
@@ -365,9 +364,9 @@ func (mainUI *MainWindow) tailLog(dir string) {
 	for line := range t.Lines {
 		// Задержка отправки сообщения раз в 3 сек
 		sec := time.Now().Sub(lastT).Seconds()
-		if sec < mainUI.delaySending {
+		if sec < mainUI.SpinBtn.GetValue() {
 			//log.Printf("Sleep %.2f sec.", mainUI.delaySending-sec)
-			time.Sleep(time.Duration(mainUI.delaySending-sec) * time.Second)
+			time.Sleep(time.Duration(mainUI.SpinBtn.GetValue()-sec) * time.Second)
 		}
 
 		if mainUI.tailQuit {
