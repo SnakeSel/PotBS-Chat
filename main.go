@@ -224,7 +224,6 @@ func mainWindowCreate() *MainWindow {
 	win.SpinBtn, err = gtk.SpinButtonNewWithRange(0, 5, 1)
 	checkErr(err)
 	win.SpinBtn.SetDigits(0)
-	win.SpinBtn.SetTooltipText("Задержка перевода сообщения в сек.")
 
 	// win.SpinBtn.Connect("value-changed", func() {
 	// 	log.Printf("Delay sending set to: %.0f", win.SpinBtn.GetValue())
@@ -244,6 +243,11 @@ func mainWindowCreate() *MainWindow {
 	checkErr(err)
 	win.ComboTransTo.Append(transToRU, transToRU)
 	win.ComboTransTo.Append(transToEN, transToEN)
+
+	win.ComboTransTo.Connect("changed", func() {
+		log.Printf("Lang to: %s", win.ComboTransTo.GetActiveID())
+		win.setLocale(win.ComboTransTo.GetActiveID())
+	})
 
 	win.LblTransTo, err = gtk.LabelNew("Translate to")
 	checkErr(err)
@@ -713,6 +717,23 @@ func getChanelList(lang string) ([]string, error) {
 	return nil, errors.New("unknown lang")
 }
 
+func (mainUI *MainWindow) setLocale(locale string) {
+	switch str.ToLower(locale) {
+	case "ru":
+		mainUI.LblTransTo.SetLabel("Переводить на ")
+		mainUI.BtnNew.SetLabel("Переоткрыть")
+		mainUI.BtnClear.SetLabel("Очистить")
+		mainUI.BtnExit.SetLabel("Закрыть")
+		mainUI.SpinBtn.SetTooltipText("Мин. интервал между сообщениями (в сек.)\nЧтобы не превысить ограничения сервера gtranslate")
+	case "en":
+		mainUI.LblTransTo.SetLabel("Translate to ")
+		mainUI.BtnNew.SetLabel("Reload")
+		mainUI.BtnClear.SetLabel("Clear")
+		mainUI.BtnExit.SetLabel("Quit")
+		mainUI.SpinBtn.SetTooltipText("Min. interval between messages (in seconds)\nIn order not to exceed the gtranslate server limits")
+
+	}
+}
 func checkErr(e error, text_opt ...string) {
 	if e != nil {
 
