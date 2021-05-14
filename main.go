@@ -26,7 +26,10 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-var cfg *ini.File
+var (
+	cfg   *ini.File
+	libre *libretr.Translation
+)
 
 // IDs to access the tree view columns by
 const (
@@ -122,6 +125,7 @@ func main() {
 
 	//gtk.SetInteractiveDebugging(true)
 
+	libre = libretr.New(libretr.Config{Key: "potbs-chat"})
 	gtk.Main()
 
 }
@@ -279,6 +283,11 @@ func mainWindowCreate() *MainWindow {
 	// Нижняя полоса
 	boxFooter, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 3)
 	checkErr(err)
+	boxFooter.SetMarginTop(3)    // отступ сверху
+	boxFooter.SetMarginBottom(3) // отступ снизу
+	boxFooter.SetMarginStart(3)  // отступ слева
+	boxFooter.SetMarginEnd(3)    // отступ справа
+
 	// Кнопки
 	boxBtn, err := gtk.BoxNew(gtk.ORIENTATION_HORIZONTAL, 3)
 	checkErr(err)
@@ -667,7 +676,8 @@ func translate(source, sourceLang, targetLang string) (string, error) {
 	}
 
 	// Раз не вышли, значит пробуем через libretranslate
-	trtext, err = libretr.Translate(source, sourceLang, targetLang)
+
+	trtext, err = libre.Translate(source, sourceLang, targetLang)
 	if err == nil {
 		if replName.lenght > 0 {
 			trtext = trtext[:replName.start] + replName.text + trtext[replName.start:]

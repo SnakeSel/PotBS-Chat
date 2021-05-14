@@ -39,8 +39,6 @@ del /s /q /f %builddir%\lib\gdk-pixbuf-2.0\2.10.0\loaders\*.a
 echo glib-compile-schemas ...
 md %builddir%\share\glib-2.0\schemas
 xcopy %mingw%\share\glib-2.0\schemas\gschemas.compiled %builddir%\share\glib-2.0\schemas\
-rem cd %builddir%^M
-rem glib-compile-schemas share/glib-2.0/schemas
 
 
 echo Create etc\gtk-3.0\settings.ini ...
@@ -53,8 +51,8 @@ rem echo [Settings]> %confdir%\settings.ini
 rem echo gtk-theme-name=Windows10>> %confdir%\settings.ini
 rem echo gtk-font-name=Segoe UI 9>> %confdir%\settings.ini
 (echo [Settings]
-echo gtk-theme-name = Adwaita 
-echo gtk-icon-theme-name = Adwaita 
+echo gtk-theme-name = Adwaita
+echo gtk-icon-theme-name = Adwaita
 echo gtk-xft-antialias=1
 echo gtk-xft-hinting=1
 echo gtk-xft-hintstyle=hintfull

@@ -9,7 +9,7 @@ require (
 	github.com/hpcloud/tail v1.0.0
 	github.com/robertkrimen/otto v0.0.0-20200922221731-ef014fd054ac // indirect
 	github.com/smartystreets/goconvey v1.6.4 // indirect
-	github.com/snakesel/libretranslate v0.0.0-20210304145744-bc4a3b975438
+	github.com/snakesel/libretranslate v0.0.2
 	github.com/stretchr/testify v1.7.0 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/ini.v1 v1.62.0
