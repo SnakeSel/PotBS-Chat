@@ -22,13 +22,13 @@ import (
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/hpcloud/tail"
-	libretr "github.com/snakesel/libretranslate"
+	ms "github.com/snakesel/mstranslator"
 	"gopkg.in/ini.v1"
 )
 
 var (
-	cfg   *ini.File
-	libre *libretr.Translation
+	cfg  *ini.File
+	mstr *ms.Translation
 )
 
 // IDs to access the tree view columns by
@@ -125,7 +125,11 @@ func main() {
 
 	//gtk.SetInteractiveDebugging(true)
 
-	libre = libretr.New(libretr.Config{Key: "potbs-chat"})
+	mstr = ms.New(
+		ms.Config{
+			Key:    MSkey,
+			Region: MSregion,
+		})
 	gtk.Main()
 
 }
@@ -387,12 +391,20 @@ func loadAndRun(mainUI *MainWindow) {
 }
 
 func (mainUI *MainWindow) tailLog(dir string) {
-
+	var t *tail.Tail
+	var err error
 	// регулярка поиска времени
 	re := regexp.MustCompile(`\d\d:\d\d:\d\d`)
 	var iter *gtk.TreeIter
 
-	t, err := tail.TailFile(dir, tail.Config{Follow: true, MustExist: true, Poll: true}) //Poll: true,
+	switch runtime.GOOS {
+	case "windows":
+		t, err = tail.TailFile(dir, tail.Config{Follow: true, MustExist: true, Poll: true}) //Poll: true,
+	default:
+		t, err = tail.TailFile(dir, tail.Config{Follow: true, MustExist: true})
+	}
+
+	//t, err := tail.TailFile(dir, tail.Config{Follow: true, MustExist: true, Poll: true}) //Poll: true,
 	checkErr(err)
 	// Текущее время  -10 сек.
 	// чтобы первый запрос прошел без задержки
@@ -675,9 +687,8 @@ func translate(source, sourceLang, targetLang string) (string, error) {
 		return trtext, nil
 	}
 
-	// Раз не вышли, значит пробуем через libretranslate
-
-	trtext, err = libre.Translate(source, sourceLang, targetLang)
+	// Раз не вышли, значит пробуем через MS Translate
+	trtext, err = mstr.Translate(source, sourceLang, targetLang)
 	if err == nil {
 		if replName.lenght > 0 {
 			trtext = trtext[:replName.start] + replName.text + trtext[replName.start:]

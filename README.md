@@ -5,7 +5,7 @@
 Перевод сообщений чата PotBS на Русский язык
 
 Программа считывает лог игры и выводит переведенные сообщения чата.  
-Сообщения переводятся через Google Translate, при недоступности через Libre Translate.  
+Сообщения переводятся через [Google Translate](https://translate.google.ru), при недоступности через [Microsoft Translator](https://www.bing.com/translator).  
 
 ![](img/potbs-chat.jpg)
 Написана на [Go](https://golang.org/) с использованием [gotk3](https://github.com/gotk3/gotk3)

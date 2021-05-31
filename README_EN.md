@@ -5,7 +5,7 @@
 Translating PotBS Chat Messages into English
 
 The program reads the game log and displays the translated chat messages.  
-Messages are translated via Google Translate, if not available via Libre Translate.  
+Messages are translated via Google Translate, if not available via Microsoft Translator.  
 
 ![](img/potbs-chat.jpg)
 Written in [Go](https://golang.org/) using [gotk3](https://github.com/gotk3/gotk3)
